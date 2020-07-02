@@ -71,12 +71,6 @@ lazy val rules = project
   .in(file("scalafix-rules"))
   .settings(
     moduleName := "scalafix-rules",
-    buildInfoKeys ++= Seq[BuildInfoKey](
-      "supportedScalaVersions" -> (scalaVersion.value +:
-        testedPreviousScalaVersions
-          .getOrElse(scalaVersion.value, Nil))
-    ),
-    buildInfoObject := "RulesBuildInfo",
     description := "Built-in Scalafix rules",
     libraryDependencies ++= List(
       "org.scalameta" % "semanticdb-scalac-core" % scalametaV cross CrossVersion.full,
@@ -84,7 +78,6 @@ lazy val rules = project
     )
   )
   .dependsOn(core)
-  .enablePlugins(BuildInfoPlugin)
 
 lazy val reflect = project
   .in(file("scalafix-reflect"))
@@ -222,11 +215,8 @@ lazy val unit = project
         "outputSourceDirectories",
         sourceDirectories.in(testsOutput, Compile).value
       )
-      props.put("scalaVersion", scalaVersion.in(testsInput, Compile).value)
-      props.put(
-        "scalacOptions",
-        scalacOptions.in(testsInput, Compile).value.mkString("|")
-      )
+      props.put("scalaVersion", scalaVersion.value)
+      props.put("scalacOptions", scalacOptions.value.mkString("|"))
       val out =
         managedResourceDirectories.in(Test).value.head /
           "scalafix-testkit.properties"
