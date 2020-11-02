@@ -43,7 +43,8 @@ final class ScalafixGlobalThread(var compiler: Global, name: String = "")
         ex match {
           // + scalac deviation
           case InterruptException() =>
-            Thread.interrupted()
+            Thread.currentThread().interrupt()
+            compiler = null
           case _: ThreadDeath =>
             compiler = null
           // - scalac deviation

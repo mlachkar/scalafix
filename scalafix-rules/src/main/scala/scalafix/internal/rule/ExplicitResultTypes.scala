@@ -39,6 +39,7 @@ final class ExplicitResultTypes(
     global.foreach(_.foreach(g => {
       try {
         g.askShutdown()
+        g.interruptThreadIfStillAlive()
         g.closeCompat()
       } catch {
         case NonFatal(_) =>

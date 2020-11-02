@@ -45,4 +45,18 @@ trait ScalafixGlobalProxy { this: ScalafixGlobal =>
     compileRunner.start()
     compileRunner
   }
+
+  def interruptThreadIfStillAlive(): Unit =
+    try {
+      if (compileRunner.isAlive) {
+        compileRunner.interrupt()
+      } else ()
+    } catch {
+      case NonFatal(e) =>
+        println(
+          Level.INFO,
+          "unexpected error interrupting the compiler thread",
+          e
+        )
+    }
 }
