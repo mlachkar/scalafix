@@ -1,6 +1,7 @@
 package scalafix.internal.rule
 
 import scala.meta._
+import scala.meta.contrib.Whitespace
 
 import metaconfig.ConfDecoder
 import metaconfig.Configured
@@ -47,6 +48,41 @@ final class Scala3NewSyntax(config: Scala3NewSyntaxConfig)
           ) =>
         val underscore = t.tokens.find(_.is[Token.Underscore]).get
         Patch.replaceToken(underscore, "?")
+
+      // xs: _*  --->  xs*   (vararg splice, as an actual argument)
+      // Tests in VarargsSyntax.scala
+      case t @ Term.Repeated(expr) if config.newSyntax =>
+        val tokensToRemove = t.tokens
+          .dropRight(1) // skip the * so that we keep it
+          .takeRightWhile { tok =>
+            // the : and _ and any whitespace will be dropped
+            tok.is[Token.Colon] || tok.is[Token.Underscore] || tok.is[Whitespace]
+          }
+        Patch.removeTokens(tokensToRemove)
+
+      // xs @ _*  --->  xs*   (vararg pattern)
+      // Tests in VarargsSyntax.scala
+      case t @ Pat.Bind(lhs, Pat.SeqWildcard()) if config.newSyntax =>
+        val tokensToRemove = t.tokens
+          .dropRight(1) // skip the * so that we keep it
+          .takeRightWhile { tok =>
+            // the @ and _ and any whitespace will be dropped
+            tok.is[Token.At] || tok.is[Token.Underscore] || tok.is[Whitespace]
+          }
+        Patch.removeTokens(tokensToRemove)
+
+      // _ @ _*  --->  _*   (vararg pattern)
+      // Tests in VarargsSyntax.scala
+      case t @ Pat.SeqWildcard() if config.newSyntax =>
+        val (beforeAt, atAndFollowing) = t.tokens.span(!_.is[Token.At])
+        if (atAndFollowing.isEmpty) {
+          Patch.empty
+        } else {
+          val tokensToRemove =
+            (beforeAt.takeRightWhile(_.is[Whitespace]) ++
+              atAndFollowing.dropRight(1))
+          Patch.removeTokens(tokensToRemove)
+        }
     }.asPatch
 
     val lintPatch = doc.tokens.collect { case t @ Token.KwImplicit() =>
